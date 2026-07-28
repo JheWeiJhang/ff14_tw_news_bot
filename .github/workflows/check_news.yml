@@ -1,0 +1,40 @@
+name: FF14 TW 公告檢查
+
+on:
+  schedule:
+    # 每 10 分鐘跑一次（GitHub Actions 的排程時間為 UTC，且可能有幾分鐘誤差）
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 執行機器人
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # 若只想監控特定分類，取消下一行註解並填入 1~4
+          # NEWS_CATEGORY: "2"
+        run: python3 ff14_tw_news_bot.py
+
+      - name: 提交更新後的紀錄檔 (seen_news.json)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_news.json
+          git diff --staged --quiet || git commit -m "更新已通知公告紀錄"
+          git push
