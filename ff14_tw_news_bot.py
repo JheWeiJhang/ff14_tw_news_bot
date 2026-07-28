@@ -154,7 +154,28 @@ def send_discord_message(item):
         )
 
 
+def send_test_message():
+    if not DISCORD_WEBHOOK_URL:
+        print("未設定 DISCORD_WEBHOOK_URL，無法送出測試訊息。")
+        return
+
+    payload = {
+        "username": "FF14 台版公告",
+        "content": "✅ 測試訊息：Discord webhook 連線正常，機器人已經可以正常推播囉！",
+    }
+    resp = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
+    if resp.status_code >= 300:
+        print(f"測試訊息發送失敗（{resp.status_code}）：{resp.text}", file=sys.stderr)
+    else:
+        print("測試訊息已成功送出，請檢查 Discord 頻道。")
+
+
 def main():
+    # 手動測試模式：只發一則測試訊息，不抓公告、不動 seen_news.json
+    if os.environ.get("TEST_MESSAGE", "").strip().lower() in ("1", "true", "yes"):
+        send_test_message()
+        return
+
     html = fetch_news_list()
     news_items = parse_news(html)
 
