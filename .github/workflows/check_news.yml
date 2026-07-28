@@ -1,10 +1,18 @@
 name: FF14 TW 公告檢查
 
+concurrency:
+  group: check-news
+  cancel-in-progress: false
+
 on:
   schedule:
-    # 每 10 分鐘跑一次（GitHub Actions 的排程時間為 UTC，且可能有幾分鐘誤差）
     - cron: "*/10 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: "傳送一則測試訊息確認 Discord webhook（true/false）"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -27,8 +35,7 @@ jobs:
       - name: 執行機器人
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          # 若只想監控特定分類，取消下一行註解並填入 1~4
-          # NEWS_CATEGORY: "2"
+          TEST_MESSAGE: ${{ github.event.inputs.test_message }}
         run: python3 ff14_tw_news_bot.py
 
       - name: 提交更新後的紀錄檔 (seen_news.json)
@@ -37,4 +44,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add seen_news.json
           git diff --staged --quiet || git commit -m "更新已通知公告紀錄"
+          git pull --rebase
           git push
